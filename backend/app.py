@@ -26,7 +26,6 @@ def train_if_missing():
     m.fit(X,y)
     joblib.dump(m, MODEL_PATH)
     joblib.dump(feats, FEATURES_PATH)
-    print("Model auto-trained.")
 
 train_if_missing()
 model = joblib.load(MODEL_PATH)
