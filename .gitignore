@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.db
+household_power_consumption.txt
+.vscode/
+New folder/
+*.pkl
+model.pkl
+features.pkl

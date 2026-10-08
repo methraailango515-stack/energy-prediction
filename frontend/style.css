@@ -1,0 +1,350 @@
+/* ============================================
+   THEME VARIABLES
+   ============================================ */
+:root {
+  --bg: #0f172a;
+  --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b);
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-contrast: #0f172a;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --grid: #334155;
+}
+
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --bg-gradient: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  --card-bg: #ffffff;
+  --card-border: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-contrast: #ffffff;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --grid: #e2e8f0;
+}
+
+/* ============================================
+   BASE
+   ============================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 30px 16px 60px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+header {
+  position: relative;
+  text-align: center;
+  margin-bottom: 40px;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+header h1 {
+  font-size: 2.2rem;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+header p {
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-size: 1rem;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: transform 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* ============================================
+   MAIN GRID
+   ============================================ */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 850px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.form-card,
+.chart-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 26px;
+  box-shadow: var(--shadow);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.3s;
+}
+
+.form-card:hover,
+.chart-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(56, 189, 248, 0.15);
+}
+
+h2 {
+  margin-bottom: 18px;
+  color: var(--accent);
+  font-size: 1.2rem;
+  letter-spacing: 0.3px;
+}
+
+/* ============================================
+   FORM
+   ============================================ */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  gap: 6px;
+  font-weight: 500;
+}
+
+input,
+select {
+  padding: 11px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* ============================================
+   BUTTON
+   ============================================ */
+#predictBtn {
+  margin-top: 12px;
+  padding: 13px;
+  border: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#predictBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+#predictBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+#predictBtn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(0, 0, 0, 0.2);
+  border-top-color: var(--accent-contrast);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+#predictBtn.loading .spinner {
+  display: inline-block;
+}
+
+#predictBtn.loading .btn-label {
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   RESULT BOX
+   ============================================ */
+.result {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border-left: 4px solid var(--accent);
+  font-size: 1rem;
+  animation: slideIn 0.4s ease;
+}
+
+.result .value {
+  font-size: 2.2rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   CHARTS
+   ============================================ */
+canvas {
+  max-height: 400px;
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 340px;
+}
+
+.toast {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border-left: 4px solid var(--accent);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.92rem;
+  animation: toastIn 0.35s ease;
+  word-wrap: break-word;
+}
+
+.toast.error {
+  border-left-color: #ef4444;
+}
+
+.toast.success {
+  border-left-color: #22c55e;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast.fade-out {
+  animation: toastOut 0.3s ease forwards;
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+/* ============================================
+   FOOTER / DETAIL
+   ============================================ */
+.chart-desc {
+  color: var(--text-muted);
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+}

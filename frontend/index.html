@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Intelligent Energy Consumption Predictor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="toast-container"></div>
+
+  <header>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    <h1>⚡ Intelligent Energy Consumption Predictor</h1>
+    <p>Enter details below to estimate your electricity usage.</p>
+  </header>
+
+  <main>
+    <section class="form-card">
+      <h2>Predict Consumption</h2>
+
+      <div class="form-fields">
+        <label>Hour of Day (0–23)
+          <input type="number" id="hour" min="0" max="23" value="19" />
+        </label>
+
+        <label>Day of Week (0=Mon, 6=Sun)
+          <input type="number" id="day_of_week" min="0" max="6" value="2" />
+        </label>
+
+        <label>Month (1–12)
+          <input type="number" id="month" min="1" max="12" value="10" />
+        </label>
+
+        <label>Is Weekend?
+          <select id="is_weekend">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </label>
+
+        <label>Voltage (V)
+          <input type="number" id="voltage" step="0.1" value="240" />
+        </label>
+
+        <label>Current Intensity (A)
+          <input type="number" id="current" step="0.1" value="5" />
+        </label>
+
+        <button type="button" id="predictBtn" onclick="makePrediction()">
+          <span class="spinner"></span>
+          <span class="btn-label">Predict</span>
+        </button>
+      </div>
+
+      <div id="result" class="result hidden"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Prediction History</h2>
+      <canvas id="historyChart"></canvas>
+    </section>
+
+    <section class="chart-card" style="grid-column: 1 / -1;">
+      <h2>What Factors Matter Most?</h2>
+      <p class="chart-desc">Feature importance from the trained Random Forest model</p>
+      <canvas id="importanceChart" style="max-height: 350px;"></canvas>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    var API_URL = "http://127.0.0.1:5000";
+    var chart = null;
+
+    // ============================================
+    // THEME TOGGLE
+    // ============================================
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute("data-theme");
+      var next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      document.querySelector(".theme-toggle").textContent = next === "light" ? "☀️" : "🌙";
+      localStorage.setItem("theme", next);
+      // Redraw charts with new theme colors
+      setTimeout(function () {
+        loadHistory();
+        loadFeatureImportance();
+      }, 50);
+    }
+
+    // Apply saved theme on load
+    (function () {
+      var saved = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", saved);
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelector(".theme-toggle").textContent = saved === "light" ? "☀️" : "🌙";
+      });
+    })();
+
+    // ============================================
+    // TOAST NOTIFICATIONS
+    // ============================================
+    function showToast(message, type) {
+      var container = document.getElementById("toast-container");
+      var toast = document.createElement("div");
+      toast.className = "toast" + (type ? " " + type : "");
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(function () {
+        toast.classList.add("fade-out");
+        setTimeout(function () {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
+      }, 3500);
+    }
+
+    // ============================================
+    // PREDICTION
+    // ============================================
+    function makePrediction() {
+      var btn = document.getElementById("predictBtn");
+      btn.disabled = true;
+      btn.classList.add("loading");
+
+      var payload = {
+        hour: parseInt(document.getElementById("hour").value) || 0,
+        day_of_week: parseInt(document.getElementById("day_of_week").value) || 0,
+        month: parseInt(document.getElementById("month").value) || 1,
+        is_weekend: parseInt(document.getElementById("is_weekend").value) || 0,
+        voltage: parseFloat(document.getElementById("voltage").value) || 240,
+        current: parseFloat(document.getElementById("current").value) || 5
+      };
+
+      fetch(API_URL + "/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          var resultDiv = document.getElementById("result");
+          resultDiv.classList.remove("hidden");
+          resultDiv.innerHTML =
+            "<div>Predicted Consumption</div>" +
+            '<div class="value">' + data.prediction + " " + data.unit + "</div>";
+          showToast("Prediction successful: " + data.prediction + " " + data.unit, "success");
+          loadHistory();
+        } else {
+          showToast("Error: " + data.error, "error");
+        }
+      })
+      .catch(function (err) {
+        console.error(err);
+        showToast("Could not connect to backend. Is Flask running?", "error");
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.classList.remove("loading");
+      });
+    }
+
+    // ============================================
+    // HISTORY CHART
+    // ============================================
+    function loadHistory() {
+      var styles = getComputedStyle(document.documentElement);
+      var accent = styles.getPropertyValue("--accent").trim();
+      var gridColor = styles.getPropertyValue("--grid").trim();
+      var textColor = styles.getPropertyValue("--text-muted").trim();
+
+      fetch(API_URL + "/history")
+        .then(function (res) { return res.json(); })
+        .then(function (rows) {
+          var recent = rows.slice(0, 15).reverse();
+          var labels = recent.map(function (r) { return "#" + r.id; });
+          var values = recent.map(function (r) { return r.prediction; });
+
+          if (chart) chart.destroy();
+
+          var ctx = document.getElementById("historyChart").getContext("2d");
+          chart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [{
+                label: "Predicted kWh",
+                data: values,
+                borderColor: accent,
+                backgroundColor: "rgba(56,189,248,0.15)",
+                fill: true,
+                tension: 0.35,
+                pointBackgroundColor: accent,
+                pointRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { labels: { color: textColor } }
+              },
+              scales: {
+                x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                y: { ticks: { color: textColor }, grid: { color: gridColor } }
+              }
+            }
+          });
+        })
+        .catch(function (err) { console.error("History error:", err); });
+    }
+
+    // ============================================
+    // FEATURE IMPORTANCE CHART
+    // ============================================
+    function loadFeatureImportance() {
+      var styles = getComputedStyle(document.documentElement);
+      var gridColor = styles.getPropertyValue("--grid").trim();
+      var textColor = styles.getPropertyValue("--text-muted").trim();
+
+      fetch(API_URL + "/feature-importance")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!Array.isArray(data)) return;
+
+          var labels = data.map(function (d) { return d.feature; });
+          var values = data.map(function (d) { return d.importance * 100; });
+
+          var ctx = document.getElementById("importanceChart").getContext("2d");
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [{
+                label: "Importance (%)",
+                data: values,
+                backgroundColor: [
+                  "#38bdf8", "#0ea5e9", "#0284c7",
+                  "#075985", "#0c4a6e", "#1e3a8a"
+                ],
+                borderRadius: 6
+              }]
+            },
+            options: {
+              indexAxis: "y",
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: {
+                  ticks: { color: textColor },
+                  grid: { color: gridColor },
+                  title: { display: true, text: "Importance (%)", color: textColor }
+                },
+                y: {
+                  ticks: { color: textColor, font: { size: 13 } },
+                  grid: { display: false }
+                }
+              }
+            }
+          });
+        })
+        .catch(function (err) { console.error("Importance error:", err); });
+    }
+
+    // ============================================
+    // INIT
+    // ============================================
+    window.addEventListener("load", function () {
+      loadHistory();
+      loadFeatureImportance();
+    });
+  </script>
+</body>
+</html>
