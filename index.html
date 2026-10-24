@@ -1,276 +1,359 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" class="h-full bg-slate-900">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Intelligent Energy Consumption Predictor</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div id="toast-container"></div>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PowerPredict | Smart Energy Forecast</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    .font-mono { font-family: 'Roboto Mono', monospace; }
+    
+    .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); z-index: 0; animation: float 12s infinite ease-in-out alternate; }
+    .orb-1 { width: 400px; height: 400px; background: rgba(79, 70, 229, 0.25); top: -10%; left: -10%; }
+    .orb-2 { width: 350px; height: 350px; background: rgba(16, 185, 129, 0.2); bottom: -10%; right: -10%; animation-delay: -5s; }
+    @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, 50px) scale(1.1); } }
 
-  <header>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-    <h1>⚡ Intelligent Energy Consumption Predictor</h1>
-    <p>Enter details below to estimate your electricity usage.</p>
+    .page-section { display: none; opacity: 0; }
+    .page-section.active { display: flex; animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .glass-panel { background: rgba(30, 41, 59, 0.65); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    .chat-bubble-user { background: #4f46e5; color: white; border-radius: 12px 12px 0 12px; }
+    .chat-bubble-ai { background: #1e293b; border: 1px solid #334155; border-radius: 12px 12px 12px 0; }
+    
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 8px; }
+
+    /* Fix for Appliance Cards */
+    .appliance-card { transition: all 0.2s; }
+    .appliance-card.active { border-color: #6366f1; background-color: rgba(99, 102, 241, 0.1); }
+    .appliance-card.active .appliance-title { color: white; }
+    .appliance-card.active .appliance-icon { color: #818cf8; }
+    .appliance-inputs { display: none; }
+    .appliance-card.active .appliance-inputs { display: flex; }
+  </style>
+</head>
+<body class="h-full text-slate-200 relative overflow-y-auto overflow-x-hidden">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+  </div>
+
+  <header class="relative z-50 w-full border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showPage('page-welcome')">
+        <div class="bg-gradient-to-br from-indigo-500 to-cyan-400 p-2 rounded-xl shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <span class="text-2xl font-extrabold text-white">Power<span class="text-indigo-400">Predict</span></span>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <section class="form-card">
-      <h2>Predict Consumption</h2>
-
-      <div class="form-fields">
-        <label>Hour of Day (0–23)
-          <input type="number" id="hour" min="0" max="23" value="19" />
-        </label>
-
-        <label>Day of Week (0=Mon, 6=Sun)
-          <input type="number" id="day_of_week" min="0" max="6" value="2" />
-        </label>
-
-        <label>Month (1–12)
-          <input type="number" id="month" min="1" max="12" value="10" />
-        </label>
-
-        <label>Is Weekend?
-          <select id="is_weekend">
-            <option value="0">No</option>
-            <option value="1">Yes</option>
-          </select>
-        </label>
-
-        <label>Voltage (V)
-          <input type="number" id="voltage" step="0.1" value="240" />
-        </label>
-
-        <label>Current Intensity (A)
-          <input type="number" id="current" step="0.1" value="5" />
-        </label>
-
-        <button type="button" id="predictBtn" onclick="makePrediction()">
-          <span class="spinner"></span>
-          <span class="btn-label">Predict</span>
+  <main class="relative z-10 min-h-[calc(100vh-80px)]">
+    <!-- PAGE 1: WELCOME -->
+    <section id="page-welcome" class="page-section active flex-col items-center justify-center p-4 min-h-[calc(100vh-80px)]">
+      <div class="text-center max-w-3xl mx-auto">
+        <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight">
+          Smart Energy.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Predict Your Bill.</span>
+        </h1>
+        <p class="text-lg text-slate-400 mb-10 max-w-2xl mx-auto">
+          Forecast your monthly electricity consumption and generate accurate bill estimates based on real appliance usage.
+        </p>
+        <button onclick="showPage('page-inputs')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-10 rounded-xl shadow-lg transition-all text-lg flex items-center gap-3 mx-auto">
+          Get Started <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
-
-      <div id="result" class="result hidden"></div>
     </section>
 
-    <section class="chart-card">
-      <h2>Prediction History</h2>
-      <canvas id="historyChart"></canvas>
+    <!-- PAGE 2: SIMPLE INPUTS -->
+    <section id="page-inputs" class="page-section flex-col items-center justify-center p-4 py-12 min-h-[calc(100vh-80px)]">
+      <div class="glass-panel rounded-3xl p-8 max-w-xl w-full shadow-2xl text-center">
+        <div class="mb-8">
+          <div class="bg-indigo-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-400">
+            <i class="fa-regular fa-calendar-days text-2xl"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-white">Select Month</h2>
+          <p class="text-sm text-slate-400 mt-1">Which month are you calculating your bill for?</p>
+        </div>
+
+        <div class="mb-8">
+          <select id="month" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-2 focus:ring-indigo-500 outline-none text-center">
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6" selected>June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+
+        <div class="flex justify-between items-center mt-8 pt-6 border-t border-slate-700/50">
+          <button onclick="showPage('page-welcome')" class="text-slate-400 hover:text-white transition flex items-center gap-2 font-medium"><i class="fa-solid fa-arrow-left"></i> Back</button>
+          <button onclick="showPage('page-appliances')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all flex items-center gap-2">Next Step <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
     </section>
 
-    <section class="chart-card" style="grid-column: 1 / -1;">
-      <h2>What Factors Matter Most?</h2>
-      <p class="chart-desc">Feature importance from the trained Random Forest model</p>
-      <canvas id="importanceChart" style="max-height: 350px;"></canvas>
+    <!-- PAGE 3: APPLIANCES & PREDICTION -->
+    <section id="page-appliances" class="page-section flex-col items-center justify-center p-4 py-8 min-h-[calc(100vh-80px)]">
+      <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-7 glass-panel rounded-3xl p-6 shadow-2xl flex flex-col h-[75vh]">
+          <div class="flex justify-between items-center mb-6 border-b border-slate-700/50 pb-4">
+            <div>
+              <h2 class="text-2xl font-bold text-white"><i class="fa-solid fa-plug text-emerald-400"></i> Select Appliances</h2>
+              <p class="text-sm text-slate-400 mt-1">Tick an appliance, enter Qty & type Hours/Day.</p>
+            </div>
+            <span class="text-sm font-bold text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-full border border-emerald-400/20">
+              <span id="applianceUnits">0.00</span> kWh / month
+            </span>
+          </div>
+          <div id="applianceList" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto custom-scroll pr-2 flex-grow"></div>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col gap-6">
+          <div class="glass-panel rounded-3xl p-6 shadow-2xl">
+            <label class="block text-sm font-bold text-slate-300 mb-3">Select Tariff Rate (₹/unit)</label>
+            <div class="grid grid-cols-4 gap-2">
+              <label class="cursor-pointer"><input type="radio" name="tariff" value="5" class="peer sr-only" onchange="updateBill()"><div class="text-center py-2 rounded-lg border border-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-300 font-bold transition">₹5</div></label>
+              <label class="cursor-pointer"><input type="radio" name="tariff" value="12" class="peer sr-only" checked onchange="updateBill()"><div class="text-center py-2 rounded-lg border border-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-300 font-bold transition">₹12</div></label>
+              <label class="cursor-pointer"><input type="radio" name="tariff" value="16" class="peer sr-only" onchange="updateBill()"><div class="text-center py-2 rounded-lg border border-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-300 font-bold transition">₹16</div></label>
+              <label class="cursor-pointer"><input type="radio" name="tariff" value="18" class="peer sr-only" onchange="updateBill()"><div class="text-center py-2 rounded-lg border border-slate-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-300 font-bold transition">₹18</div></label>
+            </div>
+          </div>
+
+          <button onclick="makePrediction()" id="predictBtn" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2 text-lg transition-all">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill
+          </button>
+
+          <div id="result" class="glass-panel rounded-3xl shadow-2xl hidden border-indigo-500/30 overflow-hidden">
+            <div class="bg-slate-800/80 p-4 border-b border-slate-700/50 text-center">
+              <h3 class="text-lg font-bold text-white tracking-widest uppercase">PowerPredict</h3>
+              <p class="text-[10px] text-slate-400 mt-1">ESTIMATED INVOICE</p>
+            </div>
+            <div class="p-5 font-mono text-sm space-y-3">
+              <div class="flex justify-between text-slate-300"><span>Total Usage:</span><span class="font-bold text-white"><span id="resUnits">0.00</span> kWh</span></div>
+              <div class="flex justify-between text-slate-300"><span>Energy Charge (@ ₹<span id="resRate">12</span>):</span><span>₹<span id="energyCharge">0.00</span></span></div>
+              <div class="flex justify-between text-slate-300"><span>Fixed Charges:</span><span>₹100.00</span></div>
+              <div class="flex justify-between text-slate-300"><span>Electricity Duty (5%):</span><span>₹<span id="taxAmount">0.00</span></span></div>
+              <div class="border-t border-slate-700 border-dashed my-3"></div>
+              <div class="flex justify-between text-white font-bold text-lg items-center"><span>TOTAL BILL:</span><span class="text-emerald-400 text-2xl">₹<span id="totalBill">0.00</span></span></div>
+            </div>
+          </div>
+
+          <div id="emptyState" class="glass-panel rounded-3xl p-6 text-center py-8 border-slate-700/50">
+            <i class="fa-solid fa-receipt text-slate-500 text-4xl mb-3"></i>
+            <p class="text-slate-400 text-sm">Click Generate Bill to see forecast.</p>
+          </div>
+          
+          <button onclick="showPage('page-inputs')" class="text-slate-400 hover:text-white mt-2 flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
+      </div>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- AI CHATBOT -->
+  <button onclick="toggleChat()" class="fixed bottom-6 right-6 z-50 bg-indigo-600 hover:bg-indigo-500 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(79,70,229,0.5)] transition-transform hover:scale-110">
+    <i class="fa-solid fa-robot text-2xl"></i>
+  </button>
+
+  <div id="chatWindow" class="fixed bottom-24 right-6 z-50 w-80 sm:w-96 glass-panel rounded-3xl shadow-2xl hidden flex-col overflow-hidden border-indigo-500/30" style="height: 500px;">
+    <div class="bg-slate-800/90 p-4 border-b border-slate-700 flex justify-between items-center">
+      <div class="flex items-center gap-2 text-white font-bold"><div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div> PowerPredict AI</div>
+      <button onclick="toggleChat()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="chatMessages" class="flex-grow p-4 overflow-y-auto custom-scroll flex flex-col gap-3">
+      <div class="chat-bubble-ai p-3 max-w-[85%] text-sm text-slate-200 shadow">Hello! I'm your Energy Assistant. Ask me things like "How to save power?" or "What is a unit?"</div>
+    </div>
+    <div class="p-3 border-t border-slate-700 bg-slate-800/50 flex gap-2">
+      <input type="text" id="chatInput" placeholder="Ask a question..." class="flex-grow bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" onkeypress="handleChatEnter(event)">
+      <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+  </div>
 
   <script>
-    var API_URL = "https://energy-prediction-owql.onrender.com";
-    var chart = null;
-
-    // ============================================
-    // THEME TOGGLE
-    // ============================================
-    function toggleTheme() {
-      var current = document.documentElement.getAttribute("data-theme");
-      var next = current === "light" ? "dark" : "light";
-      document.documentElement.setAttribute("data-theme", next);
-      document.querySelector(".theme-toggle").textContent = next === "light" ? "☀️" : "🌙";
-      localStorage.setItem("theme", next);
-      // Redraw charts with new theme colors
-      setTimeout(function () {
-        loadHistory();
-        loadFeatureImportance();
-      }, 50);
+    function showPage(pageId) {
+      document.querySelectorAll('.page-section').forEach(page => page.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      window.scrollTo(0, 0);
     }
 
-    // Apply saved theme on load
-    (function () {
-      var saved = localStorage.getItem("theme") || "dark";
-      document.documentElement.setAttribute("data-theme", saved);
-      document.addEventListener("DOMContentLoaded", function () {
-        document.querySelector(".theme-toggle").textContent = saved === "light" ? "☀️" : "🌙";
-      });
-    })();
-
-    // ============================================
-    // TOAST NOTIFICATIONS
-    // ============================================
-    function showToast(message, type) {
-      var container = document.getElementById("toast-container");
-      var toast = document.createElement("div");
-      toast.className = "toast" + (type ? " " + type : "");
-      toast.textContent = message;
-      container.appendChild(toast);
-
-      setTimeout(function () {
-        toast.classList.add("fade-out");
-        setTimeout(function () {
-          if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 300);
-      }, 3500);
+    /* --- AI CHATBOT LOGIC --- */
+    function toggleChat() {
+      const chat = document.getElementById('chatWindow');
+      chat.classList.toggle('hidden');
+      chat.classList.toggle('flex');
     }
 
-    // ============================================
-    // PREDICTION
-    // ============================================
-    function makePrediction() {
-      var btn = document.getElementById("predictBtn");
-      btn.disabled = true;
-      btn.classList.add("loading");
+    function handleChatEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
 
-      var payload = {
-        hour: parseInt(document.getElementById("hour").value) || 0,
-        day_of_week: parseInt(document.getElementById("day_of_week").value) || 0,
-        month: parseInt(document.getElementById("month").value) || 1,
-        is_weekend: parseInt(document.getElementById("is_weekend").value) || 0,
-        voltage: parseFloat(document.getElementById("voltage").value) || 240,
-        current: parseFloat(document.getElementById("current").value) || 5
-      };
+    function sendChatMessage() {
+      const input = document.getElementById("chatInput");
+      const message = input.value.trim();
+      if (!message) return;
 
-      fetch(API_URL + "/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.success) {
-          var resultDiv = document.getElementById("result");
-          resultDiv.classList.remove("hidden");
-          resultDiv.innerHTML =
-            "<div>Predicted Consumption</div>" +
-            '<div class="value">' + data.prediction + " " + data.unit + "</div>";
-          showToast("Prediction successful: " + data.prediction + " " + data.unit, "success");
-          loadHistory();
-        } else {
-          showToast("Error: " + data.error, "error");
+      const chatBox = document.getElementById("chatMessages");
+      chatBox.innerHTML += `<div class="chat-bubble-user p-3 max-w-[85%] self-end text-sm shadow">${message}</div>`;
+      input.value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      setTimeout(() => {
+        const lowerMsg = message.toLowerCase();
+        let reply = "I'm still learning! Try asking about 'saving power', 'AC', 'fridge', or 'what is a unit'.";
+
+        if (lowerMsg.includes("save") || lowerMsg.includes("reduce") || lowerMsg.includes("bill")) {
+          reply = "To lower your bill: 1. Switch to LED bulbs. 2. Set your AC to 24°C. 3. Unplug devices when not in use. 4. Use 5-star rated appliances.";
+        } else if (lowerMsg.includes("ac") || lowerMsg.includes("air condition")) {
+          reply = "ACs use a lot of power! A 1.5 Ton AC uses about 1.5 units per hour. Keeping it at 24°C instead of 18°C can save you up to 24% on cooling costs.";
+        } else if (lowerMsg.includes("fan")) {
+          reply = "A standard ceiling fan uses about 70 Watts. Running 3 fans for 10 hours a day will cost you roughly ₹75 per month.";
+        } else if (lowerMsg.includes("fridge") || lowerMsg.includes("refrigerator")) {
+          reply = "Keep your fridge away from direct sunlight and the stove. A 5-star rated fridge can save you thousands of rupees over its lifetime.";
+        } else if (lowerMsg.includes("unit") || lowerMsg.includes("kwh")) {
+          reply = "1 Unit = 1 kWh (Kilowatt-hour). If you use a 1000-Watt heater for 1 hour, you consume exactly 1 unit of electricity.";
+        } else if (lowerMsg.includes("heater") || lowerMsg.includes("geyser")) {
+          reply = "Water heaters consume 2000W (2 units per hour). Take shorter showers and turn it off once the water is hot to save power.";
+        } else if (lowerMsg.includes("hi") || lowerMsg.includes("hello")) {
+          reply = "Hi there! Ready to save some energy today? Ask me anything about your home appliances.";
         }
-      })
-      .catch(function (err) {
-        console.error(err);
-        showToast("Could not connect to backend. Is Flask running?", "error");
-      })
-      .finally(function () {
-        btn.disabled = false;
-        btn.classList.remove("loading");
+
+        chatBox.innerHTML += `<div class="chat-bubble-ai p-3 max-w-[85%] text-sm text-slate-200 shadow">${reply}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, 600);
+    }
+
+    /* --- APPLIANCE LOGIC --- */
+    const APPLIANCE_WATTAGE = {
+      "Fan": { w: 70, icon: "fa-fan" }, "LED Light": { w: 10, icon: "fa-lightbulb" },
+      "Tube Light": { w: 40, icon: "fa-lightbulb" }, "AC (1 Ton)": { w: 1400, icon: "fa-snowflake" },
+      "AC (1.5 Ton)": { w: 1800, icon: "fa-snowflake" }, "Washing M/C": { w: 500, icon: "fa-soap" },
+      "Fridge": { w: 200, icon: "fa-temperature-low" }, "Room Heater": { w: 2000, icon: "fa-fire" },
+      "Water Heater": { w: 2000, icon: "fa-shower" }, "TV": { w: 100, icon: "fa-tv" },
+      "Laptop": { w: 150, icon: "fa-laptop" }, "Microwave": { w: 1000, icon: "fa-box" }
+    };
+
+    // Renders the appliances using the new custom active CSS classes
+    function buildApplianceList() {
+      document.getElementById("applianceList").innerHTML = Object.entries(APPLIANCE_WATTAGE).map(([name, data]) => `
+        <label class="cursor-pointer block">
+          <input type="checkbox" value="${name}" class="sr-only" onchange="toggleAppliance(this)">
+          <div class="appliance-card h-full p-3 rounded-xl border border-slate-700 bg-slate-900/50 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-2">
+              <i class="fa-solid ${data.icon} appliance-icon text-slate-500 text-lg"></i>
+              <span class="text-[10px] font-medium text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">${data.w}W</span>
+            </div>
+            <div class="appliance-title text-sm font-medium text-slate-300 mb-3 truncate">${name}</div>
+            
+            <!-- HOURS INPUT: Shows up when card is active -->
+            <div class="appliance-inputs flex gap-2 mt-auto pt-3 border-t border-slate-700/50">
+              <div class="w-1/2">
+                <label class="block text-[10px] text-slate-400 mb-1">Qty</label>
+                <input type="number" min="1" value="1" class="w-full bg-slate-800 border border-slate-600 rounded text-xs px-2 py-1.5 text-white outline-none focus:border-indigo-500">
+              </div>
+              <div class="w-1/2">
+                <label class="block text-[10px] text-slate-400 mb-1">Hrs/Day</label>
+                <input type="number" min="0" max="24" step="0.5" placeholder="0" class="w-full bg-slate-800 border border-slate-600 rounded text-xs px-2 py-1.5 text-white outline-none focus:border-indigo-500">
+              </div>
+            </div>
+
+          </div>
+        </label>
+      `).join("");
+      
+      // Add listeners to number inputs
+      document.querySelectorAll("#applianceList input[type='number']").forEach(input => {
+        input.addEventListener("input", calculateApplianceUnits);
+        // Stop click from unchecking the box
+        input.addEventListener("click", (e) => e.stopPropagation());
       });
     }
 
-    // ============================================
-    // HISTORY CHART
-    // ============================================
-    function loadHistory() {
-      var styles = getComputedStyle(document.documentElement);
-      var accent = styles.getPropertyValue("--accent").trim();
-      var gridColor = styles.getPropertyValue("--grid").trim();
-      var textColor = styles.getPropertyValue("--text-muted").trim();
-
-      fetch(API_URL + "/history")
-        .then(function (res) { return res.json(); })
-        .then(function (rows) {
-          var recent = rows.slice(0, 15).reverse();
-          var labels = recent.map(function (r) { return "#" + r.id; });
-          var values = recent.map(function (r) { return r.prediction; });
-
-          if (chart) chart.destroy();
-
-          var ctx = document.getElementById("historyChart").getContext("2d");
-          chart = new Chart(ctx, {
-            type: "line",
-            data: {
-              labels: labels,
-              datasets: [{
-                label: "Predicted kWh",
-                data: values,
-                borderColor: accent,
-                backgroundColor: "rgba(56,189,248,0.15)",
-                fill: true,
-                tension: 0.35,
-                pointBackgroundColor: accent,
-                pointRadius: 4
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { labels: { color: textColor } }
-              },
-              scales: {
-                x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                y: { ticks: { color: textColor }, grid: { color: gridColor } }
-              }
-            }
-          });
-        })
-        .catch(function (err) { console.error("History error:", err); });
+    // Toggle logic
+    function toggleAppliance(checkbox) {
+      const card = checkbox.nextElementSibling;
+      if (checkbox.checked) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+      calculateApplianceUnits();
     }
 
-    // ============================================
-    // FEATURE IMPORTANCE CHART
-    // ============================================
-    function loadFeatureImportance() {
-      var styles = getComputedStyle(document.documentElement);
-      var gridColor = styles.getPropertyValue("--grid").trim();
-      var textColor = styles.getPropertyValue("--text-muted").trim();
-
-      fetch(API_URL + "/feature-importance")
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-          if (!Array.isArray(data)) return;
-
-          var labels = data.map(function (d) { return d.feature; });
-          var values = data.map(function (d) { return d.importance * 100; });
-
-          var ctx = document.getElementById("importanceChart").getContext("2d");
-          new Chart(ctx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [{
-                label: "Importance (%)",
-                data: values,
-                backgroundColor: [
-                  "#38bdf8", "#0ea5e9", "#0284c7",
-                  "#075985", "#0c4a6e", "#1e3a8a"
-                ],
-                borderRadius: 6
-              }]
-            },
-            options: {
-              indexAxis: "y",
-              responsive: true,
-              plugins: { legend: { display: false } },
-              scales: {
-                x: {
-                  ticks: { color: textColor },
-                  grid: { color: gridColor },
-                  title: { display: true, text: "Importance (%)", color: textColor }
-                },
-                y: {
-                  ticks: { color: textColor, font: { size: 13 } },
-                  grid: { display: false }
-                }
-              }
-            }
-          });
-        })
-        .catch(function (err) { console.error("Importance error:", err); });
+    function calculateApplianceUnits() {
+      let total = 0;
+      document.querySelectorAll("#applianceList input[type='checkbox']").forEach(cb => {
+        if (!cb.checked) return;
+        const card = cb.nextElementSibling;
+        const [qtyInput, hrsInput] = card.querySelectorAll("input[type='number']");
+        
+        const watt = APPLIANCE_WATTAGE[cb.value].w;
+        const qty = parseFloat(qtyInput.value) || 0;
+        const hours = parseFloat(hrsInput.value) || 0;
+        
+        total += (watt * qty * hours * 30) / 1000; 
+      });
+      document.getElementById("applianceUnits").textContent = total.toFixed(2);
+      return total;
     }
 
-    // ============================================
-    // INIT
-    // ============================================
-    window.addEventListener("load", function () {
-      loadHistory();
-      loadFeatureImportance();
-    });
+    function makePrediction() {
+      const btn = document.getElementById("predictBtn");
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Calculating...`;
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const units = calculateApplianceUnits();
+        // If user didn't type any hours, give them a baseline 0 or show alert
+        if (units === 0) {
+            alert("Please enter the hours/day for at least one appliance to generate a bill.");
+            btn.innerHTML = `<i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill`;
+            btn.disabled = false;
+            return;
+        }
+        showResult(units);
+        btn.innerHTML = `<i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill`;
+        btn.disabled = false;
+      }, 600);
+    }
+
+    function showResult(monthlyUnits) {
+      document.getElementById("emptyState").classList.add("hidden");
+      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("resUnits").textContent = Number(monthlyUnits).toFixed(2);
+      window.lastMonthlyUnits = Number(monthlyUnits);
+      updateBill();
+    }
+
+    function updateBill() {
+      if (!window.lastMonthlyUnits) return;
+      const rate = parseFloat(document.querySelector('input[name="tariff"]:checked').value);
+      document.getElementById("resRate").textContent = rate;
+      
+      const energyCharge = window.lastMonthlyUnits * rate;
+      const fixedCharge = 100.00; 
+      const tax = (energyCharge + fixedCharge) * 0.05;
+      const total = energyCharge + fixedCharge + tax;
+
+      document.getElementById("energyCharge").textContent = energyCharge.toFixed(2);
+      document.getElementById("taxAmount").textContent = tax.toFixed(2);
+      document.getElementById("totalBill").textContent = total.toFixed(2);
+    }
+
+    document.addEventListener("DOMContentLoaded", buildApplianceList);
   </script>
 </body>
 </html>
